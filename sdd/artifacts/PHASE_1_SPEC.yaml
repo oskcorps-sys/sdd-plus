@@ -1,156 +1,353 @@
 phase: 1
-title: "Schemas + Validators — SDD+ Foundation"
-description: |
-  Build the validation layer for SDD+. Define 5 core Pydantic schemas
-  that enforce contract structure, state snapshots, and artifact validation.
-  Implement 2 validators that can validate against these schemas in real YAML.
+title: "RAKSO Fortress OS — MVP Core"
+version: "0.1.0-draft"
+status: DRAFT
+author: "Oscar Franco (oskcorps)"
+created: "2026-06-03"
 
-  This phase establishes the spec-first discipline: all future code must
-  match schemas, all artifacts must pass validators.
+# ------------------------------------------------------------
+# 1. MISSION
+# ------------------------------------------------------------
+mission: >
+  Build an autonomous, modular, compliance-first marketing
+  execution system that operates as a partner — not a tool.
+  RAKSO orchestrates decisions under risk, validates outputs
+  through a dynamic compliance layer (The Bridge), and
+  publishes across multiple platforms without requiring
+  manual intervention beyond identity setup.
 
-user_story: |
-  As an implementer, I need validators so I can:
-  - Automatically check that CONTRACT.yaml matches the schema
-  - Validate that STATE_SNAPSHOT.yaml transitions are valid
-  - Catch schema violations early (before code runs)
+# ------------------------------------------------------------
+# 2. NON-NEGOTIABLES (system laws — never violated)
+# ------------------------------------------------------------
+non_negotiables:
+  - id: NN-01
+    rule: "Context must be declared or auto-inferred from Obsidian vault before any agent executes."
+  - id: NN-02
+    rule: "The Bridge has absolute veto authority. No output ships without Bridge approval."
+  - id: NN-03
+    rule: "Compliance overrides persuasion. Always."
+  - id: NN-04
+    rule: "Dignity overrides conversion. No manipulation, no false urgency, no identity destruction."
+  - id: NN-05
+    rule: "Architecture must be adapter-based. Models, channels, and tools are swappable without touching core logic."
+  - id: NN-06
+    rule: "Idea-to-published output must complete in under 90 seconds in AUTO mode."
+  - id: NN-07
+    rule: "Human-on-the-loop is configurable, not hardcoded. Modes: MANUAL / SEMI-AUTO / AUTO."
 
-success_criteria:
-  - "5 Pydantic schemas defined and tested"
-  - "2 validators implemented (contract_validator, state_validator)"
-  - "All validators pass against existing artifacts"
-  - "≥80% test coverage on validators"
-  - "Example artifacts in /examples/ validate successfully"
-
+# ------------------------------------------------------------
+# 3. SCOPE — MVP (lean, no over-engineering)
+# ------------------------------------------------------------
 scope:
-  included:
-    - "Pydantic v2 schemas for: CONTRACT, STATE_SNAPSHOT, USER_STORY, PHASE_SPEC, AUDIT_RESULT"
-    - "Validator: validate_contract.py (check CONTRACT.yaml structure)"
-    - "Validator: validate_state.py (check STATE_SNAPSHOT.yaml)"
-    - "Test suite: test_schemas.py, test_validators.py (15+ tests, ≥80% coverage)"
-    - "Examples: /sdd/artifacts/examples/ with valid + invalid artifacts"
-    - "CLI command: `sdd validate <artifact_path>`"
+  in_scope:
+    - MarketingAgent with 4 parallel sub-agents
+    - The Bridge as live compliance agent (not static rules)
+    - Identity Pack ingestion from Obsidian vault
+    - Three operation modes (MANUAL / SEMI-AUTO / AUTO)
+    - Telegram as sole human touchpoint
+    - n8n as orchestration layer
+    - Adapter layer for models (Anthropic / OpenAI / Google / OpenRouter)
+    - Phase 1: single-user (Oscar) with hardcoded brand voice
+  out_of_scope:
+    - Multi-tenant / multi-user support (Phase 2)
+    - Camaleón mode — dynamic buyer persona adaptation (Phase 2)
+    - Additional domain agents beyond Marketing (Phase 3+)
+    - Commercial naming and branding (deferred)
+    - Self-hosted model deployment (use APIs only in MVP)
 
-  deferred_to_phase_2:
-    - "State machine transition validation (deferred: requires STATE_MACHINE setup)"
-    - "Audit result schema (deferred: depends on audit structure)"
-    - "Custom error formatting (deferred: nice-to-have)"
+# ------------------------------------------------------------
+# 4. ARCHITECTURE
+# ------------------------------------------------------------
+architecture:
+  topology: "parallel-fanout-with-bridge-gate"
+  description: >
+    Sub-agents execute in parallel, converge at The Bridge for
+    mandatory validation, then route to channel-specific tools.
 
-inputs:
-  - name: "Artifact path (YAML file)"
-    type: "str | Path"
-    required: true
-    description: "Path to a YAML artifact to validate"
-    example: "sdd/artifacts/CONTRACT.yaml"
+  layers:
+    - id: L0
+      name: "Identity Layer"
+      purpose: "Brand voice, visual assets, product context, hard limits"
+      storage: "Obsidian vault (read via MCP)"
+      mutable: true
 
-  - name: "Schema name"
-    type: "str"
-    required: false
-    description: "Which schema to validate against (contract, state, story, spec)"
-    example: "contract"
+    - id: L1
+      name: "Input Gate"
+      purpose: "Auto-detect context from Obsidian; validate execution environment"
+      blocks_if: "No active project context found"
 
-outputs:
-  - name: "Validation result"
-    type: "dict"
-    description: |
-      {
-        "valid": bool,
-        "schema": "schema_name",
-        "errors": [{"field": str, "message": str}],
-        "warnings": [{"field": str, "message": str}]
-      }
-    example: |
-      {
-        "valid": true,
-        "schema": "contract",
-        "errors": [],
-        "warnings": []
-      }
+    - id: L2
+      name: "Parallel Execution Layer"
+      purpose: "Fan-out to specialized sub-agents simultaneously"
+      sub_agents:
+        - RAKSOCreativo
+        - NeurofunnelSub
+        - ModuleC
 
-constraints:
-  - "Must use Pydantic v2 (not v1)"
-  - "Schemas must be in /sdd/schemas/ as separate .py files"
-  - "Validators must return consistent output format"
-  - "All validation errors must cite which field failed and why"
-  - "Schemas must support YAML input (not just JSON)"
+    - id: L3
+      name: "The Bridge (compliance gate)"
+      purpose: "Mandatory validation checkpoint. Absolute veto authority."
+      type: "convergence node"
 
-acceptance_tests:
-  - name: "test_contract_schema_valid"
-    given: "Valid CONTRACT.yaml from artifacts/"
-    when: "validate_contract.py called"
-    then: "Returns valid=true, errors=[]"
+    - id: L4
+      name: "NeuroRouter (dispatcher)"
+      purpose: "Routes approved output to channel-specific publication tools"
+      type: "logic-only, no creative function"
 
-  - name: "test_contract_schema_missing_field"
-    given: "CONTRACT.yaml missing 'specification' field"
-    when: "validate_contract.py called"
-    then: "Returns valid=false, errors contain 'specification' field name"
+    - id: L5
+      name: "Trafficker (execution operator)"
+      purpose: "Publishes via platform APIs / tools (no copy modification)"
 
-  - name: "test_state_schema_valid"
-    given: "Valid STATE_SNAPSHOT.yaml"
-    when: "validate_state.py called"
-    then: "Returns valid=true, no errors"
+    - id: L6
+      name: "Feedback Loop"
+      purpose: "Track friction, drop-off, compliance flags, performance"
 
-  - name: "test_validator_cli_integration"
-    given: "CLI command 'sdd validate sdd/artifacts/CONTRACT.yaml'"
-    when: "Command executed"
-    then: "Outputs validation result in human-readable format"
+# ------------------------------------------------------------
+# 5. AGENT DEFINITIONS
+# ------------------------------------------------------------
+agents:
 
-  - name: "test_coverage_threshold"
-    given: "All validator code"
-    when: "pytest --cov run"
-    then: "Coverage ≥80%"
+  - name: HermesOZ
+    role: "Master Orchestrator"
+    runtime: "Linux host process (outside Docker)"
+    responsibilities:
+      - "Route requests to the correct domain agent"
+      - "Manage agent lifecycle (start/stop/restart sub-systems)"
+      - "Aggregate status across all agents"
+      - "Surface decisions requiring human input via Telegram"
+    has_veto: false
 
-decisions:
-  - id: "DECISION-P1-001"
-    title: "Pydantic v2 for strict validation"
-    context: "Pydantic v2 has better error messages and stricter validation"
-    choice: "Use Pydantic v2 exclusively"
+  - name: MarketingAgent
+    role: "Domain Coordinator"
+    runtime: "Docker container"
+    responsibilities:
+      - "Receive brief from HermesOZ"
+      - "Orchestrate parallel fan-out to sub-agents"
+      - "Aggregate sub-agent outputs and forward to Bridge"
+      - "Return final approved output upstream"
+    sub_agents:
+      - RAKSOCreativo
+      - NeurofunnelSub
+      - ModuleC
 
-  - id: "DECISION-P1-002"
-    title: "YAML-first validation (not JSON)"
-    context: "All SDD+ artifacts are YAML; validators should read YAML natively"
-    choice: "Use pydantic-yaml to validate YAML files directly"
+  - name: RAKSOCreativo
+    role: "Strategy / Copy Engine"
+    runtime: "Docker container"
+    purpose: "Generate cognitive movement, hooks, scripts, structures"
+    forbidden_outputs:
+      - "Guarantees"
+      - "Transformation language"
+      - "Aspirational drift"
+      - "False urgency"
+      - "Manipulative framing"
+    required_outputs:
+      - Hooks
+      - Scripts
+      - Content structures
 
-phase_dependencies:
-  - "Phase 0 must be complete (repo structure, git initialized)"
+  - name: NeurofunnelSub
+    role: "Cognitive Stage Mapper"
+    runtime: "Docker container"
+    purpose: "Map output to correct neurofunnel stage"
+    stages:
+      - AWARENESS
+      - DESTABILIZATION
+      - VALIDATION
+      - PRE_DECISION
+      - BRIDGE
+    required_output_block:
+      funnel_stage: enum
+      core_emotion: string
+      cognitive_bias: string
+      psychological_goal: string
+      next_expected_action: string
 
-assumptions:
-  - "Artifact examples exist in /sdd/artifacts/"
-  - "Test framework (pytest) is installed"
-  - "Pydantic v2 is available"
+  - name: ModuleC
+    role: "Constraint Checker"
+    runtime: "Docker container"
+    constraint_types:
+      - REGULATORY  # FTC, CROA, CFPB, state laws
+      - LIQUIDITY
+      - EMOTIONAL
+      - IMPLEMENTATION
+      - PLATFORM    # Meta, Google, TikTok, YouTube
+    priority_order:
+      - REGULATORY
+      - LIQUIDITY
+      - EMOTIONAL
+      - IMPLEMENTATION
+      - PLATFORM
+    failure_behavior: "HARD STOP on any failed constraint"
 
-blockers: []
+  - name: TheBridge
+    role: "Compliance Judge (LIVE)"
+    runtime: "Docker container"
+    type: "convergence gate"
+    components:
+      - PolicyMonitor:    "Subscribes to RSS / API / scrape sources for platform policy updates"
+      - RiskScorer:       "Scores copy against current policy snapshot"
+      - GreyZoneMapper:   "Defines distance to current platform limit at this date"
+      - VetoEngine:       "Final decision: APPROVE / CONDITIONAL / BLOCK"
+    output_states:
+      - APPROVED
+      - APPROVED_WITH_CONDITIONS
+      - BLOCKED
+    update_frequency: "Daily policy refresh minimum"
 
-next_phase_context:
-  - "Phase 2 will use these validators in STATE_MACHINE logic"
-  - "Phase 3 will extend validators for Skill contracts"
+  - name: NeuroRouter
+    role: "Channel Dispatcher"
+    runtime: "n8n node"
+    type: "logic-only"
+    function: "Route approved output to channel-specific tools (no modification allowed)"
+    targets:
+      - Instagram
+      - TikTok
+      - YouTube_Shorts
+      - Telegram_notify
 
-technical_notes:
-  - "Validators should be idempotent (same input → same output)"
-  - "Use composition: validators call schema validation, then custom checks"
-  - "Error messages must help user fix the problem (not just say 'invalid')"
+  - name: Trafficker
+    role: "Publication Operator"
+    runtime: "n8n + platform APIs / MCP tools"
+    can_modify_copy: false
+    on_error: "Return to Bridge — never improvise"
 
----
-## For Codex (Implementer)
+# ------------------------------------------------------------
+# 6. IDENTITY PACK SCHEMA
+# ------------------------------------------------------------
+identity_pack:
+  source: "Obsidian vault — frontmatter + structured notes"
+  required_fields:
+    voice:
+      tone: string
+      vocabulary_constraints: list
+      forbidden_phrases: list
+    visual:
+      style: string
+      color_palette: list
+      typography: string
+      asset_paths: list
+    product:
+      name: string
+      icp: string
+      pain_points: list
+      pricing_tier: enum [T0, T1, T2, T2.5, T3]
+      offer_summary: string
+    hard_limits:
+      never_say: list
+      regulatory_jurisdiction: list
 
-Once you read this spec:
-1. Write CONTRACT.yaml committing to:
-   - 5 schemas to implement
-   - 2 validators with input/output specs
-   - Test coverage target: ≥80%
-   - No scope creep
-2. Implement code matching CONTRACT
-3. Push PR feature/phase-1
-4. Wait for audit
+# ------------------------------------------------------------
+# 7. OPERATION MODES
+# ------------------------------------------------------------
+operation_modes:
+  - mode: MANUAL
+    description: "Human approves every output before publishing"
+    bridge_action: "Validates and waits for human confirmation"
+    notification: "Telegram with full preview"
 
-For Claude Code (Auditor):
-Once Codex pushes PR:
-1. Verify tests pass (pytest)
-2. Check schemas match Pydantic v2 patterns
-3. Validate example artifacts pass validators
-4. Conformance check: code matches CONTRACT
-5. Fill PHASE_1_AUDIT.yaml
+  - mode: SEMI_AUTO
+    description: "RAKSO executes; human approves at Bridge checkpoint"
+    bridge_action: "Validates and surfaces to Telegram for tap-approval"
+    notification: "Telegram with one-tap APPROVE / REVIEW / DISCARD"
 
----
-Generated: 2026-05-19
-Owner: Oscar Franco (human)
-Status: READY FOR PHASE 1
+  - mode: AUTO
+    description: "RAKSO executes and publishes automatically if Bridge approves"
+    bridge_action: "Auto-publishes on APPROVED; only surfaces CONDITIONAL or BLOCKED"
+    notification: "Telegram summary only on completion or veto"
+
+mode_switching: "Per-product, per-channel, runtime-configurable via Telegram command"
+
+# ------------------------------------------------------------
+# 8. INTEGRATIONS
+# ------------------------------------------------------------
+integrations:
+  orchestration: "n8n (self-hosted on Beelink Mini S12 Pro)"
+  memory: "Obsidian vault (MCP)"
+  human_interface: "Telegram bot (sole touchpoint)"
+  models:
+    - provider: Anthropic
+      use: "Reasoning-heavy roles (TheBridge, RAKSOCreativo)"
+    - provider: OpenAI
+      use: "Codex for SDD+ implementation, GPT for routing"
+    - provider: Google
+      use: "Multimodal tasks (Gemini)"
+    - provider: OpenRouter
+      use: "Everything else (DeepSeek, Mistral, etc.)"
+  containerization: "Docker (each sub-agent isolated)"
+  host_os: "Linux (Ubuntu 24.04 on Beelink)"
+
+# ------------------------------------------------------------
+# 9. PERFORMANCE TARGETS
+# ------------------------------------------------------------
+performance:
+  end_to_end_latency_target_seconds: 90
+  bridge_decision_max_seconds: 15
+  parallel_fanout_max_seconds: 60
+  failure_rate_target: "< 2% blocked-without-recovery"
+
+# ------------------------------------------------------------
+# 10. ADAPTER LAYER (the core that prevents obsolescence)
+# ------------------------------------------------------------
+adapter_layer:
+  principle: "Logic is the moat. Implementation is intercambiable."
+  swappable_components:
+    - models: "Any LLM via standardized interface"
+    - channels: "Any platform via tool plugin"
+    - memory_backend: "Obsidian today; vector DB tomorrow"
+    - orchestrator: "n8n today; LangGraph or custom tomorrow"
+  immutable_components:
+    - "5-stage Neurofunnel logic"
+    - "Bridge veto authority hierarchy"
+    - "Constraint priority order (REGULATORY first, always)"
+    - "Identity pack schema"
+
+# ------------------------------------------------------------
+# 11. OPEN DECISIONS (require resolution before LOCKED state)
+# ------------------------------------------------------------
+open_decisions:
+  - id: OD-01
+    question: "Which model runs The Bridge — Claude (reasoning) or a faster/cheaper model since context is pre-processed?"
+    deferred_to: "Phase 1.5 — Model Selection Pass"
+  - id: OD-02
+    question: "Specific PolicyMonitor sources for Meta, Google, TikTok, YouTube?"
+    deferred_to: "Phase 1.5 — Bridge Detailed Design"
+  - id: OD-03
+    question: "Commercial naming for the product (post-MVP)"
+    deferred_to: "Post-MVP"
+  - id: OD-04
+    question: "Telemetry destination — local SQLite, Supabase, or both?"
+    deferred_to: "Phase 1.5"
+
+# ------------------------------------------------------------
+# 12. SUCCESS CRITERIA (must pass to mark COMPLETED)
+# ------------------------------------------------------------
+success_criteria:
+  - "MarketingAgent receives a brief and returns approved output in < 90 seconds"
+  - "All 4 sub-agents execute in parallel (verified via telemetry)"
+  - "The Bridge blocks at least one test case with known policy violation"
+  - "Identity Pack loads from Obsidian without manual context declaration"
+  - "All three modes (MANUAL / SEMI-AUTO / AUTO) operate via Telegram"
+  - "Test coverage >= 85% per SDD+ standard"
+  - "Adapter layer demonstrated by swapping at least one model without code change"
+
+# ------------------------------------------------------------
+# 13. ANTI-PATTERNS (what this spec explicitly rejects)
+# ------------------------------------------------------------
+anti_patterns:
+  - "Monolithic system prompt disguised as architecture"
+  - "Static compliance rules (Bridge must be live)"
+  - "Single-model dependency"
+  - "Operator-required system (must run without Oscar in the loop)"
+  - "Sequential execution where parallel is possible"
+  - "Hype, manipulation, false urgency, identity destruction"
+
+# ------------------------------------------------------------
+# 14. NEXT PHASE PREVIEW
+# ------------------------------------------------------------
+next_phase:
+  phase: 2
+  title: "Camaleón Mode — Dynamic Buyer Persona Adaptation"
+  scope_preview:
+    - "Parameterize Identity Pack to accept multiple personas"
+    - "Add persona-switching logic to RAKSOCreativo"
+    - "Multi-tenant readiness (per-user vault isolation)"

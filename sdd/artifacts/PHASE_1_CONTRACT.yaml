@@ -1,149 +1,90 @@
 phase: 1
-contract_id: contract-phase-1-v1
-created_at: 2026-05-19T18:10:00Z
-status: COMMITTED
+contract_id: contract-rakso-phase-1-v1
+created_at: 2026-06-04T15:25:00Z
+status: DRAFT
 
 specification:
-  title: "Pydantic Schemas + Validators for SDD+ spec enforcement"
+  title: "RAKSO Fortress OS — MVP Core"
   description: |
-    Build 5 Pydantic v2 schemas that enforce the structure of SDD+ artifacts.
-    Implement 2 validators that read YAML and validate against schemas.
-    Provide CLI integration and ≥80% test coverage.
-
+    Implement the core agent architecture and adapter layer for RAKSO Fortress OS.
+    This includes:
+    1. HermesOZ Master Orchestrator, MarketingAgent Domain Coordinator, and the sub-agents (RAKSOCreativo, NeurofunnelSub, ModuleC, TheBridge).
+    2. Obsidian vault Identity Pack reader & validator.
+    3. LLM and Channel Adapter layers (Anthropic, OpenAI, Google, Telegram, Instagram, TikTok, YouTube).
+    4. Gated execution pipelines with MANUAL, SEMI-AUTO, and AUTO operation modes.
+    5. Parallel agent invocation and Telegram interactive interface mocks.
   success_criteria:
-    - "All 5 schemas defined and importable"
-    - "validate_contract() validates CONTRACT.yaml successfully"
-    - "validate_state() validates STATE_SNAPSHOT.yaml successfully"
-    - "Both validators reject invalid artifacts with clear error messages"
-    - "CLI command 'sdd validate <path>' works end-to-end"
-    - "Test coverage ≥80% on all validator code"
-    - "All example artifacts in /sdd/artifacts/examples/ validate as expected"
+    - "MarketingAgent processes a brief and gets a Bridge verdict"
+    - "Parallel execution of creativo, neurofunnel, and modulec is verified"
+    - "Obsidian Identity Pack loads automatically and passes schema check"
+    - "The Bridge blocks/vetoes policy violations (e.g. manipulative copy)"
+    - "MANUAL, SEMI-AUTO, and AUTO modes work via mock Telegram handler"
+    - "Test coverage of RAKSO code >= 85%"
+    - "Swapping a model in adapter config does not require changing core logic"
 
 inputs:
-  artifact_path:
-    type: "str | Path"
+  brief:
+    type: "dict"
     required: true
-    description: "Path to YAML artifact to validate"
-    example: "sdd/artifacts/CONTRACT.yaml"
-    constraints: "Must be readable YAML file"
-
-  schema_name:
-    type: "str"
-    required: false
-    description: "Which schema to validate against (auto-detect if omitted)"
-    example: "contract"
-    constraints: "Must be one of: contract, state, story, spec, audit"
+    description: "Brief with campaign objective and targets"
+    example:
+      objective: "Promote new software development framework"
+      target_channel: "Telegram"
+      audience: "Developers"
 
 outputs:
-  validation_result:
+  publication_payload:
     type: "dict"
-    description: "Validation result with errors and warnings"
-    schema_ref: "schemas/validation_result.schema.yaml"
+    description: "Approved copy, funnel stage mapping, and compliance scoring"
     example:
-      valid: true
-      schema: "contract"
-      errors: []
-      warnings: []
-    validation_rule: "Must match ValidationResult schema"
+      copy: "Check out this clean implementation..."
+      stage_metadata:
+        funnel_stage: "AWARENESS"
+        core_emotion: "curiosity"
+        cognitive_bias: "Curiosity gap"
+      bridge_verdict: "APPROVED"
 
 constraints:
-  - "Use Pydantic v2 (pydantic>=2.0.0)"
-  - "Use pydantic-yaml for YAML parsing"
-  - "Schemas live in /sdd/schemas/ as separate .py files"
-  - "All error messages must be actionable (tell user how to fix)"
-  - "Validators must be idempotent"
-  - "No hardcoded paths (use Path objects)"
-  - "All validators must support both dict and YAML file input"
-
-assumptions:
-  - "Artifact examples exist in /sdd/artifacts/"
-  - "pytest installed and working"
-  - "Pydantic v2 available"
+  - "The Bridge has absolute veto authority (no output ships without Bridge approval)"
+  - "Zero copy mutations allowed at publication-time (Trafficker can't modify approved text)"
+  - "No manipulative framing, false urgency, or identity destruction in RAKSO outputs"
+  - "Parallel sub-agent fan-out must execute concurrently (using asyncio or ThreadPoolExecutor)"
+  - "Adapter-based model layer (LLM providers are hot-swappable)"
+  - "Obsidian vault parser must read local files (markdown and YAML frontmatter) representing Obsidian storage"
 
 acceptance_tests:
-  - name: "test_contract_schema_imports"
-    given: "sdd/schemas/contract.py exists"
-    when: "from sdd.schemas.contract import ContractSchema"
-    then: "Import succeeds, schema is Pydantic BaseModel"
+  - name: "test_identity_pack_load_valid"
+    given: "Valid mock Obsidian vault directory"
+    when: "load_identity_pack called"
+    then: "Successfully loads all voice, visual, product, and limit attributes"
 
-  - name: "test_contract_schema_validates_valid_artifact"
-    given: "Valid CONTRACT.yaml from /sdd/artifacts/"
-    when: "ContractSchema.model_validate_yaml(content)"
-    then: "Returns valid model, no errors"
+  - name: "test_marketing_agent_orchestration_happy_path"
+    given: "Valid brief and loaded Identity Pack"
+    when: "MarketingAgent orchestrates execution"
+    then: "Parallel sub-agents execute, Bridge approves, and final output is returned"
 
-  - name: "test_contract_schema_rejects_missing_field"
-    given: "CONTRACT.yaml missing 'specification' field"
-    when: "ContractSchema.model_validate_yaml(content)"
-    then: "Raises ValidationError with field name in message"
+  - name: "test_bridge_veto_manipulative_copy"
+    given: "Brief prompting for false urgency copy"
+    when: "Pipeline executes under AUTO/SEMI-AUTO mode"
+    then: "The Bridge blocks the copy with BLOCKED status and detailed veto reasons"
 
-  - name: "test_validate_contract_validator_happy_path"
-    given: "Valid CONTRACT.yaml"
-    when: "validate_contract('sdd/artifacts/CONTRACT.yaml')"
-    then: "Returns {valid: true, errors: [], schema: 'contract'}"
+  - name: "test_model_adapter_swappability"
+    given: "Model configuration setting OpenAI for Creativo"
+    when: "Swapped to Anthropic via config"
+    then: "Creativo runs successfully without any change to its class implementation"
 
-  - name: "test_validate_contract_validator_invalid_file"
-    given: "Invalid YAML artifact"
-    when: "validate_contract('path/to/invalid.yaml')"
-    then: "Returns {valid: false, errors: [...]}"
-
-  - name: "test_validate_state_validator_works"
-    given: "Valid STATE_SNAPSHOT.yaml"
-    when: "validate_state('sdd/artifacts/STATE_SNAPSHOT.yaml')"
-    then: "Returns {valid: true, errors: []}"
-
-  - name: "test_cli_validate_command_works"
-    given: "CLI installed"
-    when: "sdd validate sdd/artifacts/CONTRACT.yaml"
-    then: "Outputs validation result in human format"
+  - name: "test_operation_modes_routing"
+    given: "Pipeline configured for MANUAL or SEMI-AUTO mode"
+    when: "MarketingAgent routes the output to the Bridge"
+    then: "Pipeline pauses to await mock Telegram confirmation"
 
   - name: "test_coverage_threshold"
-    given: "All validator code"
-    when: "pytest --cov=sdd/validators --cov=sdd/schemas"
-    then: "Coverage ≥80%"
+    given: "Full RAKSO MVP code"
+    when: "pytest run on tests/rakso/"
+    then: "Coverage >= 85%"
 
-defer_to_next_phase:
-  - "State machine validation logic (Phase 2: requires STATE_MACHINE setup)"
-  - "Custom error formatting templates (Phase 2: nice-to-have)"
-  - "Audit schema (Phase 2: depends on audit structure finalization)"
-  - "Recursive schema validation (Phase 3+: for nested artifacts)"
+committed_by: "antigravity"
+human_approved: false
 
-files_to_create:
-  - "sdd/schemas/__init__.py"
-  - "sdd/schemas/base.py (common fields)"
-  - "sdd/schemas/contract.py"
-  - "sdd/schemas/state.py"
-  - "sdd/schemas/story.py"
-  - "sdd/schemas/spec.py"
-  - "sdd/schemas/audit.py"
-  - "sdd/validators/validate_contract.py"
-  - "sdd/validators/validate_state.py"
-  - "tests/test_schemas.py (10+ tests)"
-  - "tests/test_validators.py (8+ tests)"
-  - "sdd/artifacts/examples/valid_contract.yaml"
-  - "sdd/artifacts/examples/invalid_contract.yaml"
-
-git_workflow:
-  - "Branch: feature/phase-1"
-  - "Commit: 'PHASE 1: Define schemas' (CONTRACT + schemas files)"
-  - "Commit: 'PHASE 1: Implement validators' (validator code)"
-  - "Commit: 'PHASE 1: Add tests' (test files, ≥80% coverage)"
-  - "Commit: 'PHASE 1: Integration' (CLI + examples)"
-  - "PR: feature/phase-1 → main"
-
----
-
-## Scope is LOCKED
-- ✅ 5 schemas (not 6, not 4)
-- ✅ 2 validators (not 3, not 1)
-- ✅ ≥80% coverage (not 75%)
-- ✅ YAML-first (not JSON)
-- ❌ State machine validation (deferred to Phase 2)
-- ❌ Custom error templates (deferred)
-
-If I find this contract is wrong while coding, I stop and revise with message "CONTRACT.yaml revised: [reason]".
-
----
-
-created_at: 2026-05-19T18:10:00Z
-committed_at: 2026-05-19T18:15:00Z
-commitment_level: HIGH (locked, no changes without approval)
+references:
+  - phase_spec: "sdd/artifacts/PHASE_1_SPEC.yaml"
