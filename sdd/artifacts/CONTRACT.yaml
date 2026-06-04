@@ -1,85 +1,72 @@
-# CONTRACT.yaml - Binding technical specification
-#
-# This is written by Codex BEFORE implementing code.
-# It specifies: inputs, outputs, constraints, acceptance tests.
-# Code must match this contract. If contract is wrong, update it (reset audit).
-#
-# This artifact is immutable once approved by audit.
+phase: 1
+contract_id: contract-rakso-phase-1-v2
+created_at: 2026-06-04T15:40:00Z
+status: COMMITTED
 
-version: 1.0
-created_at: null  # YYYY-MM-DDTHH:MM:SSZ (auto-filled when committed)
-status: DRAFT     # DRAFT → COMMITTED (after human approval)
-
-# Metadata
-phase: null  # 0, 1, 2, ...
-contract_id: "contract-phase-N-v1"
-
-# High-level spec
 specification:
-  title: "What this contract delivers"
+  title: "RAKSO Fortress OS — MVP Core (Adapters & Identity)"
   description: |
-    2-3 paragraph description of what will be built.
-    Should answer: WHAT, WHY, and HOW at a glance.
-  
+    Implement the core agent architecture and adapter layer for RAKSO Fortress OS.
+    This includes:
+    1. Obsidian vault Identity Pack reader & validator.
+    2. LLM and Channel Adapter layers (Anthropic, OpenAI, Telegram).
   success_criteria:
-    - "Criterion 1 (measurable, testable)"
-    - "Criterion 2 (criterion 2)"
+    - "Obsidian Identity Pack loads automatically and passes schema check"
+    - "Adapter-based model layer (LLM providers are hot-swappable)"
+    - "Test coverage of RAKSO code >= 85%"
 
-# Inputs: what does the code accept?
 inputs:
-  param_name:
-    type: "str | int | dict | list"
+  brief:
+    type: "dict"
     required: true
-    description: "What this parameter represents"
-    example: "example_value"
-    constraints: 
-      - "Must be non-empty if provided"
-      - "Max length: 255"
+    description: "Brief with campaign objective and targets"
+    example:
+      objective: "Promote new software development framework"
+      target_channel: "Telegram"
+      audience: "Developers"
 
-# Outputs: what does the code produce?
 outputs:
-  output_name:
-    type: "dict | list | str"
-    description: "What this output represents"
-    example: {...}
-    schema_ref: "schemas/output.schema.yaml"  # (Phase 1+: pydantic schema)
-    validation_rule: "Must pass schema validation"
+  publication_payload:
+    type: "dict"
+    description: "Approved copy, funnel stage mapping, and compliance scoring"
+    example:
+      copy: "Check out this clean implementation..."
+      stage_metadata:
+        funnel_stage: "AWARENESS"
+        core_emotion: "curiosity"
+        cognitive_bias: "Curiosity gap"
+      bridge_verdict: "APPROVED"
 
-# Constraints: rules the code must follow
 constraints:
-  - "No hardcoded secrets (use env vars)"
-  - "All user inputs validated before use"
-  - "Error handling required for all external calls"
-  - "Idempotent: calling twice with same input = same output"
+  - "Adapter-based model layer (LLM providers are hot-swappable)"
+  - "Obsidian vault parser must read local files (markdown and YAML frontmatter) representing Obsidian storage"
 
-# What we assume is true
-assumptions:
-  - "Dependency X is already available"
-  - "Database connection exists"
-
-# What we're NOT doing in this phase (explicit deferral)
-defer_to_next_phase:
-  - "Feature X (why: too complex for Phase N, scheduled for N+1)"
-  - "Optimization Y (why: not critical path now)"
-
-# Test cases (what proves this contract works?)
 acceptance_tests:
-  - name: "test_happy_path"
-    given: "Normal inputs (param1=foo, param2=123)"
-    when: "Function called with inputs"
-    then: "Output matches schema, success=true"
-    
-  - name: "test_edge_case_empty_input"
-    given: "Empty or null input"
-    when: "Function called"
-    then: "Graceful error or default behavior (specify which)"
+  - name: "test_identity_pack_load_valid"
+    given: "Valid mock Obsidian vault directory"
+    when: "load_identity_pack called"
+    then: "Successfully loads all voice, visual, product, and limit attributes"
 
-# Who committed to this contract (for questions)
-committed_by: "codex"
+  - name: "test_model_adapter_swappability"
+    given: "Model configuration setting OpenAI for Creativo"
+    when: "Swapped to Anthropic via config"
+    then: "Creativo runs successfully without any change to its class implementation"
+
+  - name: "test_marketing_agent_parallel_execution"
+    given: "A valid task brief and available sub-agents (RAKSOCreativo, NeurofunnelSub, ModuleC)"
+    when: "MarketingAgent executes the task"
+    then: "Sub-agents run concurrently and their results are aggregated"
+
+  - name: "test_the_bridge_policy_veto"
+    given: "Output from a sub-agent containing manipulative copy or violating hard limits"
+    when: "TheBridge evaluates the output against IdentityPack"
+    then: "It returns a REJECTED verdict, preventing publication"
+
+defer_to_next_phase:
+  - "Gated execution pipelines (MANUAL, SEMI-AUTO, AUTO)"
+
+committed_by: "orchestrator"
 human_approved: false
 
-# Links to related artifacts
 references:
-  - user_story: "USER_STORY.yaml"
-  - prior_contract: "PHASE_N-1/CONTRACT.yaml"
-  - design_notes: "url/to/design"
+  - phase_spec: "sdd/artifacts/PHASE_1_SPEC.yaml"
