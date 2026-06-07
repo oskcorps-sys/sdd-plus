@@ -2,7 +2,7 @@
 
 [![Python 3.13+](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-261%20passing-brightgreen.svg)](https://github.com/oskcorps-sys/sdd-plus/actions)
+[![Tests](https://img.shields.io/badge/Tests-300%2B-brightgreen.svg)](https://github.com/oskcorps-sys/sdd-plus/actions)
 [![Coverage](https://img.shields.io/badge/Coverage-91%25-brightgreen.svg)](#test-coverage)
 [![Code Quality](https://img.shields.io/badge/Complexity-A%2FB-brightgreen.svg)](#code-quality)
 
@@ -88,7 +88,7 @@ project/
     telemetry.py               # JSONL event emitter + query
     web/                       # FastAPI + Jinja2 dashboard
     cli/                       # Typer CLI commands
-  tests/                       # 244+ tests, >= 85% coverage
+  tests/                       # 300+ tests, >= 85% coverage
   .sdd-metrics/                # Telemetry JSONL (gitignored)
 ```
 
@@ -116,12 +116,12 @@ project/
 
 | Phase | Title | Tests | Coverage |
 |-------|-------|-------|----------|
-| 0-2 | Schemas + State Machine + CLI | 64 | 85%+ |
-| 3 | Agent Harness (AGENTS.yaml, audit loop) | 118 | 92% |
-| 4 | Harness Closure (enforcement + git hooks) | 190 | 92.1% |
-| 5 | Telemetry & Metrics | 225 | 91.7% |
-| 6 | Web Dashboard | 244 | 91.6% |
-| 7 | PyPI Packaging | 244+ | 91%+ |
+| 0-2 | Schemas + State Machine + CLI | 300+ tests | 85%+ |
+| 3 | Agent Harness (AGENTS.yaml, audit loop) | 300+ tests | 92% |
+| 4 | Harness Closure (enforcement + git hooks) | 300+ tests | 92.1% |
+| 5 | Telemetry & Metrics | 300+ tests | 91.7% |
+| 6 | Web Dashboard | 300+ tests | 91.6% |
+| 7 | PyPI Packaging | 300+ tests | 91%+ |
 
 ---
 
@@ -129,7 +129,7 @@ project/
 
 ```bash
 # Clone and install in dev mode
-git clone https://github.com/oscarfrancodev/sdd-plus.git
+git clone https://github.com/oskcorps-sys/sdd-plus.git
 cd sdd-plus
 pip install -e ".[dev]"
 

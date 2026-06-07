@@ -309,7 +309,12 @@ def audit(
         })
 
     # Verdict + artifact
-    verdict = "APPROVED" if (tests_pass and coverage_pass) else "REJECTED"
+    verdict = "APPROVED" if (
+        tests_pass
+        and coverage_pass
+        and spec_pass
+        and contract_pass
+    ) else "REJECTED"
     audit_data = {
         "audit_id": f"audit-phase-{audit_phase}-v1",
         "phase": audit_phase,
