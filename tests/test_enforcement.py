@@ -10,6 +10,8 @@ from sdd.enforcement import (
     SDD_HOOK_MARKER,
     check_files,
     generate_hook_script,
+    get_allowed_patterns,
+    get_enforcement_mode,
     get_forbidden_patterns,
     get_staged_files,
     install_hook,
@@ -26,6 +28,11 @@ _AGENTS_YAML = {
     "version": 1,
     "roles": {
         "implementer": {
+            "allowed_file_patterns": [
+                "src/**/*",
+                "tests/**/*",
+                "README.md",
+            ],
             "forbidden_file_patterns": [
                 "sdd/artifacts/*SPEC*.yaml",
                 "sdd/artifacts/*AUDIT*.yaml",
@@ -33,6 +40,11 @@ _AGENTS_YAML = {
             ],
         },
         "auditor": {
+            "allowed_file_patterns": [
+                "sdd/artifacts/*SPEC*.yaml",
+                "sdd/artifacts/*AUDIT*.yaml",
+                "README.md",
+            ],
             "forbidden_file_patterns": [
                 "src/**/*",
             ],
@@ -139,6 +151,62 @@ class TestCheckFiles:
     def test_empty_patterns_returns_empty(self):
         assert check_files(["sdd/artifacts/PHASE_4_SPEC.yaml"], "implementer", []) == []
 
+    def test_denylist_mode_allows_neutral_files(self):
+        forbidden = _AGENTS_YAML["roles"]["implementer"]["forbidden_file_patterns"]
+        allowed = _AGENTS_YAML["roles"]["implementer"]["allowed_file_patterns"]
+        v = check_files(
+            ["pyproject.toml"],
+            "implementer",
+            forbidden,
+            allowed_patterns=allowed,
+            mode="denylist",
+        )
+        assert v == []
+
+    def test_strict_allowlist_allows_allowed_files(self):
+        forbidden = _AGENTS_YAML["roles"]["implementer"]["forbidden_file_patterns"]
+        allowed = _AGENTS_YAML["roles"]["implementer"]["allowed_file_patterns"]
+        v = check_files(
+            ["src/foo.py", "tests/test_foo.py"],
+            "implementer",
+            forbidden,
+            allowed_patterns=allowed,
+            mode="strict_allowlist",
+        )
+        assert v == []
+
+    def test_strict_allowlist_rejects_forbidden_files(self):
+        forbidden = _AGENTS_YAML["roles"]["implementer"]["forbidden_file_patterns"]
+        allowed = _AGENTS_YAML["roles"]["implementer"]["allowed_file_patterns"]
+        v = check_files(
+            ["sdd/artifacts/PHASE_4_SPEC.yaml"],
+            "implementer",
+            forbidden,
+            allowed_patterns=allowed,
+            mode="strict_allowlist",
+        )
+        assert len(v) == 1
+        assert v[0]["reason"] == "forbidden_match"
+        assert v[0]["pattern"] == "sdd/artifacts/*SPEC*.yaml"
+
+    def test_strict_allowlist_rejects_neutral_files(self):
+        forbidden = _AGENTS_YAML["roles"]["implementer"]["forbidden_file_patterns"]
+        allowed = _AGENTS_YAML["roles"]["implementer"]["allowed_file_patterns"]
+        v = check_files(
+            ["pyproject.toml"],
+            "implementer",
+            forbidden,
+            allowed_patterns=allowed,
+            mode="strict_allowlist",
+        )
+        assert len(v) == 1
+        assert v[0] == {
+            "file": "pyproject.toml",
+            "pattern": "",
+            "role": "implementer",
+            "reason": "not_allowed",
+        }
+
 
 # ---------------------------------------------------------------------------
 # resolve_role
@@ -191,6 +259,28 @@ class TestLoadAgentsConfig:
         _write_agents(tmp_path)
         cfg = load_agents_config(tmp_path)
         assert get_forbidden_patterns("nonexistent", cfg) == []
+
+    def test_get_allowed_patterns_implementer(self, tmp_path):
+        _write_agents(tmp_path)
+        cfg = load_agents_config(tmp_path)
+        patterns = get_allowed_patterns("implementer", cfg)
+        assert "src/**/*" in patterns
+
+    def test_missing_enforcement_mode_defaults_to_denylist(self, tmp_path):
+        _write_agents(tmp_path)
+        cfg = load_agents_config(tmp_path)
+        assert get_enforcement_mode(cfg) == "denylist"
+
+    def test_invalid_enforcement_mode_rejected(self, tmp_path):
+        agents = {
+            "version": 1,
+            "enforcement": {"mode": "unknown"},
+            "roles": {"implementer": {"description": "Writes code"}},
+        }
+        _write_agents(tmp_path, agents)
+        cfg = load_agents_config(tmp_path)
+        with pytest.raises(ValueError, match="Invalid enforcement.mode"):
+            get_enforcement_mode(cfg)
 
 
 # ---------------------------------------------------------------------------

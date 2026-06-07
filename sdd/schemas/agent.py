@@ -1,6 +1,6 @@
 """Agent role schema — machine-readable authority matrix."""
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Literal, Tuple
 from pydantic import BaseModel, Field, ConfigDict
 
 
@@ -23,12 +23,19 @@ class AgentRoleSchema(BaseModel):
     constraints: List[str] = Field(default_factory=list)
 
 
+class EnforcementConfigSchema(BaseModel):
+    """File-pattern enforcement configuration."""
+
+    mode: Literal["denylist", "strict_allowlist"] = Field("denylist")
+
+
 class AgentsConfigSchema(BaseModel):
     """AGENTS.yaml schema — authority matrix for all roles."""
 
     model_config = ConfigDict(extra="allow")
 
     version: int = Field(1)
+    enforcement: EnforcementConfigSchema = Field(default_factory=EnforcementConfigSchema)
     roles: Dict[str, AgentRoleSchema] = Field(...)
 
 

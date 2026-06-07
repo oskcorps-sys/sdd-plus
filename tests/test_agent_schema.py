@@ -8,6 +8,7 @@ from pathlib import Path
 from sdd.schemas.agent import (
     AgentRoleSchema,
     AgentsConfigSchema,
+    EnforcementConfigSchema,
     parse_transition_string,
     build_transition_table,
     ALL_STATES,
@@ -71,6 +72,25 @@ class TestAgentsConfigSchema:
         }
         config = AgentsConfigSchema.model_validate(data)
         assert config.version == 1
+
+    def test_enforcement_mode_defaults_to_denylist(self):
+        config = AgentsConfigSchema.model_validate({
+            "version": 1,
+            "roles": {"implementer": {"description": "test"}},
+        })
+        assert config.enforcement.mode == "denylist"
+
+    def test_enforcement_mode_accepts_strict_allowlist(self):
+        config = AgentsConfigSchema.model_validate({
+            "version": 1,
+            "enforcement": {"mode": "strict_allowlist"},
+            "roles": {"implementer": {"description": "test"}},
+        })
+        assert config.enforcement.mode == "strict_allowlist"
+
+    def test_invalid_enforcement_mode_rejected(self):
+        with pytest.raises(Exception):
+            EnforcementConfigSchema.model_validate({"mode": "invalid"})
 
 
 class TestParseTransitionString:

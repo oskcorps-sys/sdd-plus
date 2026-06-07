@@ -177,6 +177,60 @@ class TestCheckPatternsCLI:
         assert result.exit_code == 1
         assert "src/foo.py" in result.output
 
+    def test_strict_allowlist_rejects_neutral_file_with_clear_output(self, tmp_path, monkeypatch):
+        agents = {
+            "version": 1,
+            "enforcement": {"mode": "strict_allowlist"},
+            "roles": {
+                "implementer": {
+                    "allowed_file_patterns": ["src/**/*"],
+                    "forbidden_file_patterns": ["sdd/artifacts/*SPEC*.yaml"],
+                },
+            },
+        }
+        _write_agents(tmp_path, agents)
+        monkeypatch.chdir(tmp_path)
+
+        result = runner.invoke(
+            app,
+            [
+                "check-patterns",
+                "--role", "implementer",
+                "--files", "README.md",
+                "--repo-root", str(tmp_path),
+            ],
+        )
+
+        assert result.exit_code == 1
+        assert "not allowed for role 'implementer' under strict_allowlist mode" in result.output
+
+    def test_invalid_enforcement_mode_exits_clearly(self, tmp_path, monkeypatch):
+        agents = {
+            "version": 1,
+            "enforcement": {"mode": "invalid"},
+            "roles": {
+                "implementer": {
+                    "allowed_file_patterns": ["src/**/*"],
+                    "forbidden_file_patterns": [],
+                },
+            },
+        }
+        _write_agents(tmp_path, agents)
+        monkeypatch.chdir(tmp_path)
+
+        result = runner.invoke(
+            app,
+            [
+                "check-patterns",
+                "--role", "implementer",
+                "--files", "src/foo.py",
+                "--repo-root", str(tmp_path),
+            ],
+        )
+
+        assert result.exit_code == 1
+        assert "Invalid enforcement.mode" in result.output
+
 
 # ---------------------------------------------------------------------------
 # Named acceptance-test functions (must match PHASE_4_CONTRACT.yaml names)

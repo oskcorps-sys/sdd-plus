@@ -10,6 +10,8 @@ import typer
 
 from sdd.enforcement import (
     check_files,
+    get_allowed_patterns,
+    get_enforcement_mode,
     get_forbidden_patterns,
     get_staged_files,
     load_agents_config,
@@ -32,14 +34,21 @@ def _resolve_target_files(
     return None
 
 
-def _print_violations(violations: list[dict], role: str) -> None:
+def _print_violations(violations: list[dict], role: str, mode: str) -> None:
     """Emit human-readable violation report to stderr."""
     typer.echo(
         f"FAIL: {len(violations)} violation(s) for role '{role}':", err=True
     )
     for v in violations:
         typer.echo(f"  file   : {v['file']}", err=True)
-        typer.echo(f"  rule   : {v['pattern']}", err=True)
+        if v.get("reason") == "not_allowed":
+            typer.echo(
+                f"  reason : File is not allowed for role '{role}' under {mode} mode",
+                err=True,
+            )
+        else:
+            typer.echo(f"  rule   : {v['pattern']}", err=True)
+            typer.echo("  reason : forbidden_match", err=True)
         typer.echo("", err=True)
 
 
@@ -97,15 +106,28 @@ def check_patterns(
         typer.echo("INFO: AGENTS.yaml not found - enforcement disabled (no-op).")
         raise typer.Exit(code=0)
 
+    try:
+        mode = get_enforcement_mode(config)
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
+
     forbidden = get_forbidden_patterns(active_role, config)
-    if not forbidden:
+    allowed = get_allowed_patterns(active_role, config)
+    if mode == "denylist" and not forbidden:
         typer.echo(f"OK: No forbidden patterns defined for role '{active_role}'.")
         raise typer.Exit(code=0)
 
-    violations = check_files(target_files, active_role, forbidden)
+    violations = check_files(
+        target_files,
+        active_role,
+        forbidden,
+        allowed_patterns=allowed,
+        mode=mode,
+    )
     if not violations:
         typer.echo(f"OK: No violations for role '{active_role}'.")
         raise typer.Exit(code=0)
 
-    _print_violations(violations, active_role)
+    _print_violations(violations, active_role, mode)
     raise typer.Exit(code=1)
