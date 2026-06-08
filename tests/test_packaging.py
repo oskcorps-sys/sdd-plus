@@ -19,7 +19,7 @@ class TestPyprojectMetadata:
 
     def test_version(self):
         data = self._load()
-        assert data["project"]["version"] == "0.3.0"
+        assert data["project"]["version"] == "0.4.0"
 
     def test_description(self):
         data = self._load()
@@ -78,7 +78,7 @@ def test_pyproject_has_metadata():
         data = tomllib.load(f)
     proj = data["project"]
     assert proj["name"] == "sdd-plus"
-    assert proj["version"] == "0.3.0"
+    assert proj["version"] == "0.4.0"
     assert len(proj["description"]) > 20
     assert len(proj["classifiers"]) > 0
     assert len(proj["keywords"]) > 0

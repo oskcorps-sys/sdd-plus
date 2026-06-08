@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sdd-plus"
-version = "0.3.0"
+version = "0.4.0"
 description = "Specification-Driven Development Extended - LLM-agnostic spec-first governance framework with role enforcement, telemetry, and GitHub integration"
 readme = "README.md"
 requires-python = ">=3.13"

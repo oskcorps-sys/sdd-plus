@@ -2,6 +2,24 @@
 
 All notable changes to SDD+ are documented here.
 
+## [0.4.0] - 2026-06-08
+
+Release hardening after PR #5, PR #6, and PR #7.
+
+### Fixed
+- Fixed audit verdict logic so APPROVED requires pytest, coverage, spec conformance, and contract conformance.
+- Hardened CI security scanning by upgrading pip before running pip-audit, avoiding the runner pip 26.1.1 vulnerability PYSEC-2026-196.
+
+### Added
+- Added `strict_allowlist` enforcement mode while keeping `denylist` as the backward-compatible default.
+- Added the `sdd doctor` readiness command.
+
+### Stats
+- 327 tests passing
+- 92% coverage
+
+---
+
 ## [0.3.0] - 2026-05-23
 
 Phase 8 + 9: GitHub Integration and PyPI publish.
