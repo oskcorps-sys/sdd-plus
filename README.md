@@ -110,6 +110,11 @@ project/
 | `sdd dashboard` | Launch web dashboard |
 | `sdd projects list/add/remove` | Manage workspace projects |
 
+### `sdd doctor`
+
+Checks project readiness and reports each check as PASS, WARN, or FAIL.
+Exits 1 when required readiness checks fail.
+
 ---
 
 ## Phases Completed
