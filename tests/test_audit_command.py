@@ -156,13 +156,51 @@ class TestAuditCommand:
         monkeypatch.setattr("subprocess.run", mock_run)
 
         result = runner.invoke(app, ["audit", "--role", "auditor", "--phase", "1"])
-        assert result.exit_code == 0
+        assert result.exit_code != 0
 
         audit_file = tmp_path / "sdd" / "artifacts" / "PHASE_1_AUDIT.yaml"
         with open(audit_file) as f:
             audit_data = yaml.safe_load(f)
         assert audit_data["steps"]["spec_conformance"]["passed"] is False
         assert len(audit_data["steps"]["spec_conformance"]["missing_files"]) == 2
+
+    def test_audit_rejects_missing_spec_deliverables(self, monkeypatch, tmp_path):
+        state_path = str(tmp_path / "sdd" / "artifacts" / "STATE_SNAPSHOT.yaml")
+        _create_state_file(state_path, state="AUDITING", phase=1)
+        monkeypatch.setattr("sdd.state_machine.machine.StateMachine.STATE_FILE", state_path)
+        monkeypatch.chdir(tmp_path)
+
+        spec_data = {
+            "scope": {"included": ["missing/deliverable.py"]},
+        }
+        spec_path = tmp_path / "sdd" / "artifacts" / "PHASE_1_SPEC.yaml"
+        with open(spec_path, "w", encoding="utf-8") as f:
+            yaml.dump(spec_data, f)
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        cov_data = {"totals": {"percent_covered": 90.0}}
+
+        def mock_run(cmd, **kwargs):
+            for arg in cmd:
+                if arg.startswith("--cov-report=json:"):
+                    with open(arg.split(":", 1)[1], "w", encoding="utf-8") as f:
+                        json.dump(cov_data, f)
+            return mock_result
+
+        monkeypatch.setattr("subprocess.run", mock_run)
+
+        result = runner.invoke(app, ["audit", "--role", "auditor", "--phase", "1"])
+        assert result.exit_code != 0
+
+        audit_file = tmp_path / "sdd" / "artifacts" / "PHASE_1_AUDIT.yaml"
+        with open(audit_file, encoding="utf-8") as f:
+            audit_data = yaml.safe_load(f)
+        assert audit_data["verdict"] == "REJECTED"
+        assert audit_data["steps"]["pytest"]["passed"] is True
+        assert audit_data["steps"]["coverage"]["passed"] is True
+        assert audit_data["steps"]["spec_conformance"]["passed"] is False
+        assert audit_data["steps"]["contract_conformance"]["passed"] is True
 
     def test_audit_contract_conformance_missing_tests(self, monkeypatch, tmp_path):
         state_path = str(tmp_path / "sdd" / "artifacts" / "STATE_SNAPSHOT.yaml")
@@ -200,13 +238,103 @@ class TestAuditCommand:
         monkeypatch.setattr("subprocess.run", mock_run)
 
         result = runner.invoke(app, ["audit", "--role", "auditor", "--phase", "1"])
-        assert result.exit_code == 0
+        assert result.exit_code != 0
 
         audit_file = tmp_path / "sdd" / "artifacts" / "PHASE_1_AUDIT.yaml"
         with open(audit_file) as f:
             audit_data = yaml.safe_load(f)
         assert audit_data["steps"]["contract_conformance"]["passed"] is False
         assert "test_totally_missing" in audit_data["steps"]["contract_conformance"]["missing_tests"]
+
+    def test_audit_rejects_missing_contract_acceptance_tests(self, monkeypatch, tmp_path):
+        state_path = str(tmp_path / "sdd" / "artifacts" / "STATE_SNAPSHOT.yaml")
+        _create_state_file(state_path, state="AUDITING", phase=1)
+        monkeypatch.setattr("sdd.state_machine.machine.StateMachine.STATE_FILE", state_path)
+        monkeypatch.chdir(tmp_path)
+
+        contract_data = {
+            "acceptance_tests": [
+                {"name": "test_missing_acceptance"},
+            ],
+        }
+        contract_path = tmp_path / "sdd" / "artifacts" / "PHASE_1_CONTRACT.yaml"
+        with open(contract_path, "w", encoding="utf-8") as f:
+            yaml.dump(contract_data, f)
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        cov_data = {"totals": {"percent_covered": 90.0}}
+
+        def mock_run(cmd, **kwargs):
+            for arg in cmd:
+                if arg.startswith("--cov-report=json:"):
+                    with open(arg.split(":", 1)[1], "w", encoding="utf-8") as f:
+                        json.dump(cov_data, f)
+            return mock_result
+
+        monkeypatch.setattr("subprocess.run", mock_run)
+
+        result = runner.invoke(app, ["audit", "--role", "auditor", "--phase", "1"])
+        assert result.exit_code != 0
+
+        audit_file = tmp_path / "sdd" / "artifacts" / "PHASE_1_AUDIT.yaml"
+        with open(audit_file, encoding="utf-8") as f:
+            audit_data = yaml.safe_load(f)
+        assert audit_data["verdict"] == "REJECTED"
+        assert audit_data["steps"]["pytest"]["passed"] is True
+        assert audit_data["steps"]["coverage"]["passed"] is True
+        assert audit_data["steps"]["spec_conformance"]["passed"] is True
+        assert audit_data["steps"]["contract_conformance"]["passed"] is False
+
+    def test_audit_approval_requires_all_gates(self, monkeypatch, tmp_path):
+        state_path = str(tmp_path / "sdd" / "artifacts" / "STATE_SNAPSHOT.yaml")
+        _create_state_file(state_path, state="AUDITING", phase=1)
+        monkeypatch.setattr("sdd.state_machine.machine.StateMachine.STATE_FILE", state_path)
+        monkeypatch.chdir(tmp_path)
+
+        deliverable = tmp_path / "src" / "feature.py"
+        deliverable.parent.mkdir(parents=True)
+        deliverable.write_text("# implemented\n", encoding="utf-8")
+
+        spec_path = tmp_path / "sdd" / "artifacts" / "PHASE_1_SPEC.yaml"
+        with open(spec_path, "w", encoding="utf-8") as f:
+            yaml.dump({"scope": {"included": ["src/feature.py"]}}, f)
+
+        contract_path = tmp_path / "sdd" / "artifacts" / "PHASE_1_CONTRACT.yaml"
+        with open(contract_path, "w", encoding="utf-8") as f:
+            yaml.dump({"acceptance_tests": [{"name": "test_feature_acceptance"}]}, f)
+
+        tests_dir = tmp_path / "tests"
+        tests_dir.mkdir()
+        (tests_dir / "test_feature.py").write_text(
+            "def test_feature_acceptance():\n    pass\n",
+            encoding="utf-8",
+        )
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        cov_data = {"totals": {"percent_covered": 90.0}}
+
+        def mock_run(cmd, **kwargs):
+            for arg in cmd:
+                if arg.startswith("--cov-report=json:"):
+                    with open(arg.split(":", 1)[1], "w", encoding="utf-8") as f:
+                        json.dump(cov_data, f)
+            return mock_result
+
+        monkeypatch.setattr("subprocess.run", mock_run)
+
+        result = runner.invoke(app, ["audit", "--role", "auditor", "--phase", "1"])
+        assert result.exit_code == 0
+
+        audit_file = tmp_path / "sdd" / "artifacts" / "PHASE_1_AUDIT.yaml"
+        with open(audit_file, encoding="utf-8") as f:
+            audit_data = yaml.safe_load(f)
+        assert audit_data["verdict"] == "APPROVED"
+        assert audit_data["steps"]["pytest"]["passed"] is True
+        assert audit_data["steps"]["coverage"]["passed"] is True
+        assert audit_data["steps"]["spec_conformance"]["passed"] is True
+        assert audit_data["steps"]["contract_conformance"]["passed"] is True
 
     def test_audit_skips_criterion_kind_acceptance_tests(self, monkeypatch, tmp_path):
         """acceptance_tests entries with kind: criterion should not be flagged as missing functions."""
