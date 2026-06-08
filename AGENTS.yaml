@@ -4,6 +4,9 @@ github_integration:
   enabled: true
   repo: "oskcorps-sys/sdd-plus"
 
+enforcement:
+  mode: strict_allowlist
+
 roles:
   implementer:
     description: "Writes code, tests, contracts against locked specs"
@@ -13,12 +16,17 @@ roles:
       - "LOCKED->IMPLEMENTING"
       - "IMPLEMENTING->AUDITING"
     allowed_file_patterns:
-      - "src/**/*"
+      - "sdd/**/*.py"
+      - "sdd/web/templates/**/*"
+      - "sdd/state-machine/**/*"
       - "tests/**/*"
-      - "sdd/artifacts/CONTRACT*.yaml"
+      - "sdd/artifacts/PHASE_*_CONTRACT.yaml"
+      - "sdd/artifacts/CONTRACT.yaml"
+      - "sdd/artifacts/examples/**/*"
     forbidden_file_patterns:
-      - "sdd/artifacts/*SPEC*.yaml"
-      - "sdd/artifacts/*AUDIT*.yaml"
+      - "sdd/artifacts/PHASE_*_SPEC.yaml"
+      - "sdd/artifacts/PHASE_*_AUDIT.yaml"
+      - "sdd/handoffs/**/*"
       - "AGENTS.yaml"
     constraints:
       - "Cannot modify SPEC or AUDIT artifacts"
@@ -34,12 +42,17 @@ roles:
       - "AUDITING->IMPLEMENTING"
       - "*->DRAFT"
     allowed_file_patterns:
-      - "sdd/artifacts/SPEC*.yaml"
-      - "sdd/artifacts/AUDIT*.yaml"
+      - "sdd/artifacts/PHASE_*_SPEC.yaml"
+      - "sdd/artifacts/PHASE_*_AUDIT.yaml"
       - "sdd/handoffs/**/*"
       - "AGENTS.yaml"
     forbidden_file_patterns:
-      - "src/**/*"
+      - "sdd/**/*.py"
+      - "sdd/web/templates/**/*"
+      - "sdd/state-machine/**/*"
+      - "sdd/artifacts/PHASE_*_CONTRACT.yaml"
+      - "sdd/artifacts/CONTRACT.yaml"
+      - "tests/**/*"
     constraints:
       - "Cannot write implementation code"
       - "Cannot skip audit step"

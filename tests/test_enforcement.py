@@ -416,3 +416,84 @@ def test_install_hooks_preserves_existing(tmp_path):
     backup = hooks_dir / "pre-commit.pre-sdd"
     assert backup.exists()
     assert "original" in backup.read_text(encoding="utf-8")
+
+
+def test_repository_agents_yaml_matches_actual_repo_layout():
+    """The checked-in AGENTS.yaml dogfoods strict authority for real repo paths."""
+    repo_root = Path(__file__).resolve().parents[1]
+    cfg = load_agents_config(repo_root)
+
+    assert get_enforcement_mode(cfg) == "strict_allowlist"
+
+    impl_allowed = get_allowed_patterns("implementer", cfg)
+    impl_forbidden = get_forbidden_patterns("implementer", cfg)
+    auditor_allowed = get_allowed_patterns("auditor", cfg)
+    auditor_forbidden = get_forbidden_patterns("auditor", cfg)
+
+    assert "src/**/*" not in impl_allowed
+    assert "src/**/*" not in auditor_forbidden
+
+    assert check_files(
+        [
+            "sdd/cli/commands/audit.py",
+            "tests/test_enforcement.py",
+            "sdd/artifacts/PHASE_7_CONTRACT.yaml",
+        ],
+        "implementer",
+        impl_forbidden,
+        allowed_patterns=impl_allowed,
+        mode="strict_allowlist",
+    ) == []
+    assert check_files(
+        ["sdd/artifacts/PHASE_7_SPEC.yaml", "sdd/artifacts/PHASE_7_AUDIT.yaml"],
+        "implementer",
+        impl_forbidden,
+        allowed_patterns=impl_allowed,
+        mode="strict_allowlist",
+    ) == [
+        {
+            "file": "sdd/artifacts/PHASE_7_SPEC.yaml",
+            "pattern": "sdd/artifacts/PHASE_*_SPEC.yaml",
+            "role": "implementer",
+            "reason": "forbidden_match",
+        },
+        {
+            "file": "sdd/artifacts/PHASE_7_AUDIT.yaml",
+            "pattern": "sdd/artifacts/PHASE_*_AUDIT.yaml",
+            "role": "implementer",
+            "reason": "forbidden_match",
+        },
+    ]
+
+    assert check_files(
+        [
+            "sdd/artifacts/PHASE_7_SPEC.yaml",
+            "sdd/artifacts/PHASE_7_AUDIT.yaml",
+            "sdd/handoffs/PHASE_6_TO_7.md",
+            "AGENTS.yaml",
+        ],
+        "auditor",
+        auditor_forbidden,
+        allowed_patterns=auditor_allowed,
+        mode="strict_allowlist",
+    ) == []
+    assert check_files(
+        ["sdd/cli/main.py", "tests/test_enforcement.py"],
+        "auditor",
+        auditor_forbidden,
+        allowed_patterns=auditor_allowed,
+        mode="strict_allowlist",
+    ) == [
+        {
+            "file": "sdd/cli/main.py",
+            "pattern": "sdd/**/*.py",
+            "role": "auditor",
+            "reason": "forbidden_match",
+        },
+        {
+            "file": "tests/test_enforcement.py",
+            "pattern": "tests/**/*",
+            "role": "auditor",
+            "reason": "forbidden_match",
+        },
+    ]
