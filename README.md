@@ -83,7 +83,7 @@ project/
     state_machine/             # 6-state machine + transitions
     schemas/                   # Pydantic v2 models
     validators/                # Contract + state validators
-    enforcement.py             # File-pattern denylist enforcement
+    enforcement.py             # File-pattern enforcement modes
     git_integration.py         # Git helpers (branch, commit, clean check)
     telemetry.py               # JSONL event emitter + query
     web/                       # FastAPI + Jinja2 dashboard
@@ -109,6 +109,33 @@ project/
 | `sdd metrics show` | Display telemetry records |
 | `sdd dashboard` | Launch web dashboard |
 | `sdd projects list/add/remove` | Manage workspace projects |
+
+---
+
+## Enforcement Modes
+
+`AGENTS.yaml` can choose how role file patterns are enforced:
+
+- `denylist`: MVP/default mode. Blocks files matching `forbidden_file_patterns` only. Neutral files remain allowed.
+- `strict_allowlist`: Production mode. Allows only files matching the active role's `allowed_file_patterns`, while still blocking `forbidden_file_patterns`.
+
+If `enforcement.mode` is missing, SDD+ uses `denylist` for backward compatibility.
+
+```yaml
+version: 1
+enforcement:
+  mode: strict_allowlist
+roles:
+  implementer:
+    description: Writes implementation and tests
+    allowed_file_patterns:
+      - "src/**/*"
+      - "tests/**/*"
+      - "README.md"
+    forbidden_file_patterns:
+      - "sdd/artifacts/*SPEC*.yaml"
+      - "sdd/artifacts/*AUDIT*.yaml"
+```
 
 ---
 

@@ -1,13 +1,10 @@
 """
 sdd/enforcement.py — File-pattern enforcement for the SDD+ authority matrix.
 
-Enforcement is DENYLIST-based: a staged file is a violation if it matches any
-glob in the active role's `forbidden_file_patterns` list.  Files that match
-only `allowed_file_patterns`, or match neither list (neutral files), are
-permitted.  This satisfies the harness requirement ("implementer cannot commit
-SPEC, auditor cannot commit src") without blocking neutral files.
-
-Strict allowlist enforcement is explicitly deferred to a later phase.
+Enforcement supports two modes:
+  - denylist: current/default behavior; forbidden matches are violations.
+  - strict_allowlist: files must match allowed_file_patterns and must not match
+    forbidden_file_patterns.
 
 Pattern matching uses pathlib.PurePosixPath.full_match (Python 3.12+).
 All file paths are normalised to forward slashes before matching.
@@ -40,6 +37,7 @@ class Violation(TypedDict):
     file: str
     pattern: str
     role: str
+    reason: str
 
 
 # ---------------------------------------------------------------------------
@@ -109,6 +107,32 @@ def get_forbidden_patterns(role: str, agents_config: dict) -> list[str]:
     return list(patterns)
 
 
+def get_allowed_patterns(role: str, agents_config: dict) -> list[str]:
+    """Extract the allowed_file_patterns list for *role* from *agents_config*.
+
+    Returns an empty list if the role or the key is absent.
+    """
+    roles = agents_config.get("roles", {}) or {}
+    role_def = roles.get(role, {}) or {}
+    patterns = role_def.get("allowed_file_patterns", []) or []
+    return list(patterns)
+
+
+def get_enforcement_mode(agents_config: dict) -> str:
+    """Return configured enforcement mode, defaulting to denylist.
+
+    Raises ValueError for unknown modes so callers can fail clearly.
+    """
+    enforcement = agents_config.get("enforcement", {}) or {}
+    mode = enforcement.get("mode", "denylist")
+    if mode not in {"denylist", "strict_allowlist"}:
+        raise ValueError(
+            "Invalid enforcement.mode: "
+            f"{mode!r}. Expected 'denylist' or 'strict_allowlist'."
+        )
+    return mode
+
+
 # ---------------------------------------------------------------------------
 # Check files
 # ---------------------------------------------------------------------------
@@ -118,18 +142,36 @@ def check_files(
     files: list[str],
     role: str,
     forbidden_patterns: list[str],
+    allowed_patterns: list[str] | None = None,
+    mode: str = "denylist",
 ) -> list[Violation]:
-    """Return a list of violations — files that match a forbidden pattern.
+    """Return file-pattern violations for *role*.
 
-    Each violation is a dict with keys: file, pattern, role.
+    Each violation is a dict with keys: file, pattern, role, reason.
     An empty list means the commit is clean for the given role.
     """
+    allowed = allowed_patterns or []
     violations: list[Violation] = []
     for path in files:
         for pattern in forbidden_patterns:
             if match_pattern(pattern, path):
-                violations.append({"file": path, "pattern": pattern, "role": role})
+                violations.append({
+                    "file": path,
+                    "pattern": pattern,
+                    "role": role,
+                    "reason": "forbidden_match",
+                })
                 break  # one violation per file is enough
+        else:
+            if mode == "strict_allowlist" and not any(
+                match_pattern(pattern, path) for pattern in allowed
+            ):
+                violations.append({
+                    "file": path,
+                    "pattern": "",
+                    "role": role,
+                    "reason": "not_allowed",
+                })
     return violations
 
 
